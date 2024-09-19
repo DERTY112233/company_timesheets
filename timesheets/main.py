@@ -3,8 +3,7 @@ import pandas as pd
 from datetime import datetime
 import mariadb
 import bcrypt
-
-st.set_page_config(page_icon="TLO-Logo_Circle_NewGreenBluewithTag_500SQ.png")
+compname = "your company name here"
 # Function to create a database connection
 def create_connection():
     return mariadb.connect(
@@ -92,7 +91,7 @@ def load_timesheet_data(username):
     return pd.DataFrame(data, columns=["ID", "Date", "Project", "Hours Worked", "Task Description"])
 
 # Set the title of the app
-st.title("TLO Timesheet Tracker")
+st.title(f"{compname} Timesheet Tracker")
 
 # Manage authentication state
 if "logged_in" not in st.session_state:

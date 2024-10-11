@@ -175,7 +175,7 @@ def timesheet_page():
                     update_timesheet_entry(row["ID"], row["Date"], row["Project"], row["Hours Worked"], row["Task Description"])
             st.experimental_rerun()  # Refresh to show updated data
     else:
-        st.write("No timesheets available to edit.")
+        st.write("No timesheets available to edit. Start Working 😁")
 
 # Main logic
 if not st.session_state.logged_in:

@@ -3,7 +3,11 @@ import pandas as pd
 from datetime import datetime
 import mariadb
 import bcrypt
+<<<<<<< HEAD
 compname = "your company name here"
+=======
+compname = "company name here"
+>>>>>>> 38143d0 (.)
 # Function to create a database connection
 def create_connection():
     return mariadb.connect(

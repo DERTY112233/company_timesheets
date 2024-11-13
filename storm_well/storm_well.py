@@ -10,11 +10,11 @@ def hash_password(password):
 # Connect to the User database
 def connect_user_db():
     try:
-        conn = mysql.connector.connect(
+       conn = mysql.connector.connect(
             host="localhost",
             port=3306,
-            user="your_mariadb_username",
-            password="your_mariadb_password",
+            user="root",
+            password="",
             database="users_etc"
         )
         return conn
@@ -28,8 +28,8 @@ def connect_manager_db():
         conn = mysql.connector.connect(
             host="localhost",
             port=3306,
-            user="your_mariadb_username",
-            password="your_mariadb_password",
+            user="root",
+            password="",
             database="management_etc"
         )
         return conn
@@ -39,80 +39,88 @@ def connect_manager_db():
 
 # Initialize the databases if tables don't exist
 def initialize_databases():
-    with connect_user_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users_etc (
-                ID INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(50) UNIQUE,
-                password VARCHAR(64),
-                full_name VARCHAR(100),
-                first_name VARCHAR(50),
-                second_name VARCHAR(50),
-                last_name VARCHAR(50),
-                department VARCHAR(100),
-                company VARCHAR(100),
-                company_address VARCHAR(255),
-                date_started DATE,
-                leave_taken INT DEFAULT 0,
-                reasons_leave TEXT
-            )
-        ''')
-        conn.commit()
-    
-    with connect_manager_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS management_etc (
-                ID INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(50) UNIQUE,
-                password VARCHAR(64),
-                full_name VARCHAR(100),
-                company_name VARCHAR(100),
-                company_address VARCHAR(255),
-                users_registered INT DEFAULT 0
-            )
-        ''')
-        conn.commit()
+    conn_user = connect_user_db()
+    if conn_user:
+        with conn_user:
+            cursor = conn_user.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users_etc (
+                    ID INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE,
+                    password VARCHAR(64),
+                    full_name VARCHAR(100),
+                    first_name VARCHAR(50),
+                    second_name VARCHAR(50),
+                    last_name VARCHAR(50),
+                    department VARCHAR(100),
+                    company VARCHAR(100),
+                    company_address VARCHAR(255),
+                    date_started DATE,
+                    leave_taken INT DEFAULT 0,
+                    reasons_leave TEXT
+                )
+            ''')
+            conn_user.commit()
+
+    conn_manager = connect_manager_db()
+    if conn_manager:
+        with conn_manager:
+            cursor = conn_manager.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS management_etc (
+                    ID INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE,
+                    password VARCHAR(64),
+                    full_name VARCHAR(100),
+                    company_name VARCHAR(100),
+                    company_address VARCHAR(255),
+                    users_registered INT DEFAULT 0
+                )
+            ''')
+            conn_manager.commit()
 
 # Function to sign up a new manager
 def signup_manager(username, password, full_name, company_name, company_address):
     conn = connect_manager_db()
     if conn:
-        cursor = conn.cursor()
-        hashed_password = hash_password(password)
-        try:
-            cursor.execute(
-                "INSERT INTO management_etc (username, password, full_name, company_name, company_address) VALUES (%s, %s, %s, %s, %s)",
-                (username, hashed_password, full_name, company_name, company_address)
-            )
-            conn.commit()
-            st.success("Manager signed up successfully!")
-        except Error as e:
-            st.error(f"Error signing up manager: {e}")
-        finally:
-            conn.close()
+        with conn:
+            cursor = conn.cursor()
+            hashed_password = hash_password(password)
+            try:
+                cursor.execute(
+                    '''
+                    INSERT INTO management_etc (username, password, full_name, company_name, company_address)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ''',
+                    (username, hashed_password, full_name, company_name, company_address)
+                )
+                conn.commit()
+                st.success("Manager signed up successfully!")
+            except Error as e:
+                st.error(f"Error signing up manager: {e}")
 
 # Function to sign in as a user or manager
 def login(username, password, is_manager=False):
     conn = connect_manager_db() if is_manager else connect_user_db()
     if conn:
-        cursor = conn.cursor()
-        hashed_password = hash_password(password)
-        table = "management_etc" if is_manager else "users_etc"
-        try:
-            cursor.execute(f"SELECT * FROM {table} WHERE username=%s AND password=%s", (username, hashed_password))
-            user = cursor.fetchone()
-            if user:
-                st.success("Login successful!")
-                return user
-            else:
-                st.error("Invalid username or password.")
-                return None
-        except Error as e:
-            st.error(f"Error during login: {e}")
-        finally:
-            conn.close()
+        with conn:
+            cursor = conn.cursor()
+            hashed_password = hash_password(password)
+            table = "management_etc" if is_manager else "users_etc"
+            try:
+                cursor.execute(
+                    f"SELECT * FROM {table} WHERE username=%s AND password=%s",
+                    (username, hashed_password)
+                )
+                user = cursor.fetchone()
+                if user:
+                    st.success("Login successful!")
+                    return user
+                else:
+                    st.error("Invalid username or password.")
+                    return None
+            except Error as e:
+                st.error(f"Error during login: {e}")
 
 # Main application logic
 def main():
